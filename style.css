@@ -183,3 +183,11 @@ input {
         border: 2px solid black;
     }
 }
+
+/* Read-Only Auto-Calculated Fields */
+input[readonly] {
+    background-color: var(--border-color);
+    cursor: not-allowed;
+    color: var(--text-color);
+    opacity: 0.7;
+}
