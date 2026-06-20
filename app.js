@@ -1,9 +1,7 @@
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(err => {
-            console.log('Service Worker registration failed: ', err);
-        });
+        navigator.serviceWorker.register('/sw.js').catch(err => {});
     });
 }
 
@@ -32,7 +30,7 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
-// --- INSURANCE PREMIUM DATA (From image_af1330.png) ---
+// --- INSURANCE PREMIUM DATA ---
 const insuranceRates = {
     'A': { '2': 674, '3': 968, '4': 1233, '5': 1470 },
     'B': { '2': 963, '3': 1383, '4': 1762, '5': 2100 },
@@ -42,8 +40,8 @@ const insuranceRates = {
 };
 
 // DOM Elements
-const formInputs = document.querySelectorAll('input, select');
-const fundChargesCheckbox = document.getElementById('fund-charges'); // Added Checkbox
+const formInputs = document.querySelectorAll('input');
+const fundChargesCheckbox = document.getElementById('fund-charges'); 
 
 const resInsurance = document.getElementById('res-insurance');
 const resLoanAmount = document.getElementById('res-loan-amount');
@@ -57,7 +55,7 @@ const resRc = document.getElementById('res-rc');
 const resDoc = document.getElementById('res-doc');
 const resStamp = document.getElementById('res-stamp');
 const resTotalCharges = document.getElementById('res-total-charges');
-const resTotalUpfront = document.getElementById('res-total-upfront'); // Added Upfront Total
+const resTotalUpfront = document.getElementById('res-total-upfront'); 
 const resDealerDisb = document.getElementById('res-dealer-disb');
 
 // Calculation Logic
@@ -67,22 +65,65 @@ function calculate() {
     const downPayment = parseFloat(document.getElementById('down-payment').value) || 0;
     const tenure = parseFloat(document.getElementById('tenure').value) || 0;
     const roi = parseFloat(document.getElementById('roi').value) || 0;
-    const disbDateVal = document.getElementById('disb-date').value;
-    const emiDateVal = document.getElementById('emi-date').value;
+    const disbDateInput = document.getElementById('disb-date');
+    const emiDateInput = document.getElementById('emi-date');
+    const insPlanInput = document.getElementById('ins-plan');
     
-    // Get Insurance Inputs
-    const insPlan = document.getElementById('ins-plan').value;
-    const insYears = document.getElementById('ins-years').value;
+    // 2. AUTO EMI DATE CALCULATION (Rule: 5th of the month)
+    let emiDateVal = "";
+    if (disbDateInput.value) {
+        let d = new Date(disbDateInput.value);
+        let day = d.getDate();
+        let month = d.getMonth();
+        let year = d.getFullYear();
 
-    // 2. Base Loan Amount & Insurance 
-    const baseLoanAmount = Math.max(0, onRoadPrice - downPayment);
-    let insurancePremium = 0;
+        // 6th to 21st -> Next Month
+        // 22nd to 5th -> Month After Next (if 22nd+), or Next Month (if 1st-5th)
+        if (day >= 6 && day <= 21) {
+            month += 1;
+        } else if (day >= 22) {
+            month += 2;
+        } else if (day <= 5) {
+            month += 1;
+        }
 
-    if (insPlan !== 'none') {
-        insurancePremium = insuranceRates[insPlan][insYears];
+        // Handle Year Rollover (e.g., Dec to Jan)
+        if (month > 11) {
+            year += Math.floor(month / 12);
+            month = month % 12;
+        }
+
+        // Format to YYYY-MM-DD
+        let emiMonthStr = (month + 1).toString().padStart(2, '0');
+        emiDateVal = `${year}-${emiMonthStr}-05`;
+        emiDateInput.value = emiDateVal; 
     }
 
-    // 3. Calculate Charges First (Based on Base + Insurance)
+    // 3. BASE LOAN & ROUNDING TO NEAREST 500
+    let exactBaseLoan = Math.max(0, onRoadPrice - downPayment);
+    const baseLoanAmount = Math.round(exactBaseLoan / 500) * 500;
+
+    // 4. AUTO INSURANCE SLAB DETERMINATION
+    let insurancePremium = 0;
+    if (baseLoanAmount > 0 && tenure > 0) {
+        let plan = 'E'; // Default to max
+        if (baseLoanAmount <= 70000) plan = 'A';
+        else if (baseLoanAmount <= 100000) plan = 'B';
+        else if (baseLoanAmount <= 125000) plan = 'C';
+        else if (baseLoanAmount <= 150000) plan = 'D';
+
+        let years = '5';
+        if (tenure <= 24) years = '2'; // Handles 12, 18, 24 months
+        else if (tenure <= 36) years = '3';
+        else if (tenure <= 48) years = '4';
+
+        insurancePremium = insuranceRates[plan][years];
+        insPlanInput.value = `Plan ${plan} (${years} Years) - Coverage limit auto-detected`;
+    } else {
+        insPlanInput.value = '';
+    }
+
+    // 5. CALCULATE TOTALS & BANK CHARGES
     const fundedAmountBase = baseLoanAmount + insurancePremium;
     const pfCharge = (fundedAmountBase * 0.025) * 1.18; // 2.5% + 18% GST
     const rcCharge = 600 * 1.18;
@@ -90,42 +131,38 @@ function calculate() {
     const stampDuty = 200;
     const totalCharges = pfCharge + rcCharge + docCharge + stampDuty;
 
-    // 4. Determine Final Loan Amount & Payout based on Checkbox
+    // 6. FUNDED VS UPFRONT LOGIC (Checkbox)
     let loanAmount = 0;
     let totalUpfront = 0;
     let dealerDisbursement = 0;
 
     if (fundChargesCheckbox && fundChargesCheckbox.checked) {
-        // Option A: Charges are ADDED to the loan
         loanAmount = fundedAmountBase + totalCharges;
-        totalUpfront = downPayment; // Customer only pays DP upfront
-        dealerDisbursement = baseLoanAmount; // Bank pays Dealer exact remaining price
+        totalUpfront = downPayment; 
+        dealerDisbursement = baseLoanAmount; 
     } else {
-        // Option B: Charges are PAID UPFRONT
         loanAmount = fundedAmountBase;
-        totalUpfront = downPayment + totalCharges; // Customer pays DP + Charges
-        dealerDisbursement = baseLoanAmount - totalCharges; // Dealer gets less from bank
+        totalUpfront = downPayment + totalCharges; 
+        dealerDisbursement = baseLoanAmount - totalCharges; 
     }
     
-    // Default zero states if inputs are missing
+    // Check for missing data
     if (loanAmount <= 0 || tenure <= 0 || roi <= 0) {
         resetOutputs(loanAmount, insurancePremium, totalUpfront);
         return;
     }
 
-    // 5. EMI Calculation
+    // 7. EMI CALCULATION
     const r = (roi / 12) / 100;
     const n = tenure;
     const emi = loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-
-    // 6. Flat Rate ROI
     const totalPayment = emi * tenure;
     const flatRoi = (((totalPayment - loanAmount) * 12) / (loanAmount * tenure)) * 100;
 
-    // 7. Broken Period Days
+    // 8. BROKEN PERIOD CALCULATION
     let brokenDays = 0;
-    if (disbDateVal && emiDateVal) {
-        const disbDate = new Date(disbDateVal);
+    if (disbDateInput.value && emiDateVal) {
+        const disbDate = new Date(disbDateInput.value);
         const firstEmiDate = new Date(emiDateVal);
         
         const oneMonthBeforeEmi = new Date(firstEmiDate);
@@ -137,11 +174,10 @@ function calculate() {
         brokenDays = Math.max(0, daysDiff - 1);
     }
 
-    // 8. Broken Period Interest & First Installment
     const brokenInterest = loanAmount * brokenDays * (roi / 360) / 100;
     const firstInstallment = emi + brokenInterest;
 
-    // 9. Update UI
+    // 9. UPDATE UI
     resInsurance.innerText = formatCurrency(insurancePremium);
     resLoanAmount.innerText = formatCurrency(loanAmount);
     resEmi.innerText = formatCurrency(emi);
@@ -182,8 +218,6 @@ function resetOutputs(loanAmount, insurancePremium, totalUpfront = 0) {
 formInputs.forEach(input => {
     input.addEventListener('input', calculate);
 });
-
-// Attach listener specifically for the checkbox
 if (fundChargesCheckbox) {
     fundChargesCheckbox.addEventListener('change', calculate);
 }
