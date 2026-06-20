@@ -42,34 +42,18 @@
                         <label for="disb-date">Disbursement Date</label>
                         <input type="date" id="disb-date" required>
                     </div>
-                    <div class="input-group">
-                        <label for="emi-date">First EMI Due Date</label>
-                        <input type="date" id="emi-date" required>
-                    </div>
                     
                     <div class="input-group">
-                        <label for="ins-plan">Insurance Plan</label>
-                        <select id="ins-plan" style="padding: 0.5rem; border: 1px solid var(--input-border); border-radius: 0.375rem; background-color: var(--input-bg); color: var(--text-color); font-size: 1rem;">
-                            <option value="none">No Insurance</option>
-                            <option value="A">Plan A</option>
-                            <option value="B">Plan B</option>
-                            <option value="C">Plan C</option>
-                            <option value="D">Plan D</option>
-                            <option value="E">Plan E</option>
-                        </select>
+                        <label for="emi-date">First EMI Due Date (Auto 5th)</label>
+                        <input type="date" id="emi-date" readonly style="background-color: #e5e7eb; cursor: not-allowed;">
                     </div>
                     
-                    <div class="input-group">
-                        <label for="ins-years">Insurance Duration</label>
-                        <select id="ins-years" style="padding: 0.5rem; border: 1px solid var(--input-border); border-radius: 0.375rem; background-color: var(--input-bg); color: var(--text-color); font-size: 1rem;">
-                            <option value="2">2 Years</option>
-                            <option value="3">3 Years</option>
-                            <option value="4">4 Years</option>
-                            <option value="5">5 Years</option>
-                        </select>
+                    <div class="input-group" style="grid-column: 1 / -1;">
+                        <label for="ins-plan">Automated Insurance Slab</label>
+                        <input type="text" id="ins-plan" readonly placeholder="Calculated automatically..." style="background-color: #e5e7eb; cursor: not-allowed;">
                     </div>
 
-                    <div class="input-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1rem; grid-column: 1 / -1;">
+                    <div class="input-group" style="flex-direction: row; align-items: center; gap: 0.5rem; grid-column: 1 / -1;">
                         <input type="checkbox" id="fund-charges" style="width: 20px; height: 20px; cursor: pointer;">
                         <label for="fund-charges" style="margin-bottom: 0; font-size: 1rem; cursor: pointer;">Finance Bank Charges (Add to Loan Amount)</label>
                     </div>
