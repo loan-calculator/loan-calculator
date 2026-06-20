@@ -1,3 +1,16 @@
+// --- SECURITY PIN CHECK ---
+const secretPin = "8899"; // <-- You can change "8899" to any PIN you want!
+
+const userAttempt = prompt("🔒 Private Calculator. Please enter the Access PIN:");
+
+if (userAttempt !== secretPin) {
+    // If they get it wrong, erase the whole screen and show an error
+    document.body.innerHTML = "<div style='display: flex; height: 100vh; justify-content: center; align-items: center; font-family: sans-serif; background-color: #111827; color: white;'><h1>🔒 Access Denied. Incorrect PIN.</h1></div>";
+    throw new Error("Execution stopped. Incorrect PIN entered.");
+}
+// --- END SECURITY CHECK ---
+
+// (Keep all your existing Service Worker and calculator code below this line)
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
