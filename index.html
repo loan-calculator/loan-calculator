@@ -19,7 +19,6 @@
         </header>
 
         <main>
-            <!-- Input Section -->
             <section class="card input-section">
                 <h2>Loan Details</h2>
                 <form id="loan-form">
@@ -48,7 +47,6 @@
                         <input type="date" id="emi-date" required>
                     </div>
                     
-                    <!-- NEW INSURANCE FIELDS -->
                     <div class="input-group">
                         <label for="ins-plan">Insurance Plan</label>
                         <select id="ins-plan" style="padding: 0.5rem; border: 1px solid var(--input-border); border-radius: 0.375rem; background-color: var(--input-bg); color: var(--text-color); font-size: 1rem;">
@@ -60,6 +58,7 @@
                             <option value="E">Plan E</option>
                         </select>
                     </div>
+                    
                     <div class="input-group">
                         <label for="ins-years">Insurance Duration</label>
                         <select id="ins-years" style="padding: 0.5rem; border: 1px solid var(--input-border); border-radius: 0.375rem; background-color: var(--input-bg); color: var(--text-color); font-size: 1rem;">
@@ -69,22 +68,23 @@
                             <option value="5">5 Years</option>
                         </select>
                     </div>
+
+                    <div class="input-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1rem; grid-column: 1 / -1;">
+                        <input type="checkbox" id="fund-charges" style="width: 20px; height: 20px; cursor: pointer;">
+                        <label for="fund-charges" style="margin-bottom: 0; font-size: 1rem; cursor: pointer;">Finance Bank Charges (Add to Loan Amount)</label>
+                    </div>
                 </form>
             </section>
 
-            <!-- Results Section -->
             <section class="results-grid">
-                <!-- Core Loan Data -->
                 <div class="card result-card">
                     <h3>Core Metrics</h3>
-                    <!-- Added Insurance Premium Display -->
                     <div class="result-row"><span>Insurance Premium:</span> <strong id="res-insurance">0</strong></div>
                     <div class="result-row"><span>Total Loan Amount:</span> <strong id="res-loan-amount">0</strong></div>
                     <div class="result-row"><span>Monthly EMI:</span> <strong id="res-emi">0</strong></div>
                     <div class="result-row"><span>Flat Rate ROI:</span> <strong id="res-flat-roi">0%</strong></div>
                 </div>
 
-                <!-- Broken Period Data -->
                 <div class="card result-card">
                     <h3>Broken Period</h3>
                     <div class="result-row"><span>Broken Days:</span> <strong id="res-broken-days">0</strong></div>
@@ -92,17 +92,20 @@
                     <div class="result-row highlight"><span>First Installment:</span> <strong id="res-first-inst">0</strong></div>
                 </div>
 
-                <!-- Additional Charges -->
                 <div class="card result-card">
                     <h3>Additional Charges</h3>
                     <div class="result-row"><span>PF (inc. 18% GST):</span> <strong id="res-pf">0</strong></div>
                     <div class="result-row"><span>RC (inc. 18% GST):</span> <strong id="res-rc">0</strong></div>
                     <div class="result-row"><span>Document (inc. GST):</span> <strong id="res-doc">0</strong></div>
                     <div class="result-row"><span>Stamp Duty:</span> <strong id="res-stamp">0</strong></div>
-                    <div class="result-row highlight"><span>Total Charges:</span> <strong id="res-total-charges">0</strong></div>
+                    <div class="result-row"><span>Total Bank Charges:</span> <strong id="res-total-charges">0</strong></div>
+                    
+                    <div class="result-row highlight" style="margin-top: 10px; border-top: 2px dashed var(--border-color); padding-top: 10px;">
+                        <span>Total Upfront to Pay:<br><small>(Downpayment + Bank Charges)</small></span> 
+                        <strong id="res-total-upfront">0</strong>
+                    </div>
                 </div>
 
-                <!-- Final Payout -->
                 <div class="card result-card payout-card">
                     <h3>Dealer Disbursement</h3>
                     <div class="result-row final-payout">
