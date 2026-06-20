@@ -32,8 +32,18 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+// --- INSURANCE PREMIUM DATA (From image_af1330.png) ---
+const insuranceRates = {
+    'A': { '2': 674, '3': 968, '4': 1233, '5': 1470 },
+    'B': { '2': 963, '3': 1383, '4': 1762, '5': 2100 },
+    'C': { '2': 1204, '3': 1729, '4': 2202, '5': 2625 },
+    'D': { '2': 1444, '3': 2074, '4': 2643, '5': 3150 },
+    'E': { '2': 1926, '3': 2766, '4': 3524, '5': 4200 }
+};
+
 // DOM Elements
-const formInputs = document.querySelectorAll('input');
+const formInputs = document.querySelectorAll('input, select');
+const resInsurance = document.getElementById('res-insurance');
 const resLoanAmount = document.getElementById('res-loan-amount');
 const resEmi = document.getElementById('res-emi');
 const resFlatRoi = document.getElementById('res-flat-roi');
@@ -56,13 +66,25 @@ function calculate() {
     const roi = parseFloat(document.getElementById('roi').value) || 0;
     const disbDateVal = document.getElementById('disb-date').value;
     const emiDateVal = document.getElementById('emi-date').value;
+    
+    // Get Insurance Inputs
+    const insPlan = document.getElementById('ins-plan').value;
+    const insYears = document.getElementById('ins-years').value;
 
-    // 2. Base Loan Amount
-    const loanAmount = Math.max(0, onRoadPrice - downPayment);
+    // 2. Base Loan Amount & Insurance Calculation
+    const baseLoanAmount = Math.max(0, onRoadPrice - downPayment);
+    let insurancePremium = 0;
+
+    if (insPlan !== 'none') {
+        insurancePremium = insuranceRates[insPlan][insYears];
+    }
+
+    // Final Loan Amount to compute EMI on
+    const loanAmount = baseLoanAmount + insurancePremium;
     
     // Default zero states if inputs are missing
     if (loanAmount <= 0 || tenure <= 0 || roi <= 0) {
-        resetOutputs(loanAmount);
+        resetOutputs(loanAmount, insurancePremium);
         return;
     }
 
@@ -94,17 +116,20 @@ function calculate() {
     const brokenInterest = loanAmount * brokenDays * (roi / 360) / 100;
     const firstInstallment = emi + brokenInterest;
 
-    // 7. Additional Charges
+    // 7. Additional Charges (Note: PF is calculated on total loan amount)
     const pfCharge = (loanAmount * 0.025) * 1.18; // 2.5% + 18% GST
     const rcCharge = 600 * 1.18;
     const docCharge = 750 * 1.18;
     const stampDuty = 200;
     const totalCharges = pfCharge + rcCharge + docCharge + stampDuty;
 
-    // 8. Dealer Disbursement
-    const dealerDisbursement = loanAmount - totalCharges;
+    // 8. Dealer Disbursement 
+    // Disbursement usually deducts charges but DOES NOT deduct the insurance premium 
+    // because that goes to the insurance company, not the dealer.
+    const dealerDisbursement = baseLoanAmount - totalCharges;
 
     // 9. Update UI
+    resInsurance.innerText = formatCurrency(insurancePremium);
     resLoanAmount.innerText = formatCurrency(loanAmount);
     resEmi.innerText = formatCurrency(emi);
     resFlatRoi.innerText = flatRoi.toFixed(2) + '%';
@@ -122,7 +147,8 @@ function calculate() {
     resDealerDisb.innerText = formatCurrency(dealerDisbursement);
 }
 
-function resetOutputs(loanAmount) {
+function resetOutputs(loanAmount, insurancePremium) {
+    resInsurance.innerText = formatCurrency(insurancePremium);
     resLoanAmount.innerText = formatCurrency(loanAmount);
     resEmi.innerText = formatCurrency(0);
     resFlatRoi.innerText = '0%';
@@ -137,7 +163,7 @@ function resetOutputs(loanAmount) {
     resDealerDisb.innerText = formatCurrency(0);
 }
 
-// Attach listeners for real-time calculation
+// Attach listeners for real-time calculation (now listens to dropdowns too)
 formInputs.forEach(input => {
     input.addEventListener('input', calculate);
 });
