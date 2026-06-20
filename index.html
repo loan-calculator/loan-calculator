@@ -19,6 +19,7 @@
         </header>
 
         <main>
+            <!-- Input Section -->
             <section class="card input-section">
                 <h2>Loan Details</h2>
                 <form id="loan-form">
@@ -46,17 +47,44 @@
                         <label for="emi-date">First EMI Due Date</label>
                         <input type="date" id="emi-date" required>
                     </div>
+                    
+                    <!-- NEW INSURANCE FIELDS -->
+                    <div class="input-group">
+                        <label for="ins-plan">Insurance Plan</label>
+                        <select id="ins-plan" style="padding: 0.5rem; border: 1px solid var(--input-border); border-radius: 0.375rem; background-color: var(--input-bg); color: var(--text-color); font-size: 1rem;">
+                            <option value="none">No Insurance</option>
+                            <option value="A">Plan A</option>
+                            <option value="B">Plan B</option>
+                            <option value="C">Plan C</option>
+                            <option value="D">Plan D</option>
+                            <option value="E">Plan E</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="ins-years">Insurance Duration</label>
+                        <select id="ins-years" style="padding: 0.5rem; border: 1px solid var(--input-border); border-radius: 0.375rem; background-color: var(--input-bg); color: var(--text-color); font-size: 1rem;">
+                            <option value="2">2 Years</option>
+                            <option value="3">3 Years</option>
+                            <option value="4">4 Years</option>
+                            <option value="5">5 Years</option>
+                        </select>
+                    </div>
                 </form>
             </section>
 
+            <!-- Results Section -->
             <section class="results-grid">
+                <!-- Core Loan Data -->
                 <div class="card result-card">
                     <h3>Core Metrics</h3>
-                    <div class="result-row"><span>Loan Amount:</span> <strong id="res-loan-amount">0</strong></div>
+                    <!-- Added Insurance Premium Display -->
+                    <div class="result-row"><span>Insurance Premium:</span> <strong id="res-insurance">0</strong></div>
+                    <div class="result-row"><span>Total Loan Amount:</span> <strong id="res-loan-amount">0</strong></div>
                     <div class="result-row"><span>Monthly EMI:</span> <strong id="res-emi">0</strong></div>
                     <div class="result-row"><span>Flat Rate ROI:</span> <strong id="res-flat-roi">0%</strong></div>
                 </div>
 
+                <!-- Broken Period Data -->
                 <div class="card result-card">
                     <h3>Broken Period</h3>
                     <div class="result-row"><span>Broken Days:</span> <strong id="res-broken-days">0</strong></div>
@@ -64,6 +92,7 @@
                     <div class="result-row highlight"><span>First Installment:</span> <strong id="res-first-inst">0</strong></div>
                 </div>
 
+                <!-- Additional Charges -->
                 <div class="card result-card">
                     <h3>Additional Charges</h3>
                     <div class="result-row"><span>PF (inc. 18% GST):</span> <strong id="res-pf">0</strong></div>
@@ -73,6 +102,7 @@
                     <div class="result-row highlight"><span>Total Charges:</span> <strong id="res-total-charges">0</strong></div>
                 </div>
 
+                <!-- Final Payout -->
                 <div class="card result-card payout-card">
                     <h3>Dealer Disbursement</h3>
                     <div class="result-row final-payout">
