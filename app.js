@@ -43,6 +43,8 @@ const insuranceRates = {
 
 // DOM Elements
 const formInputs = document.querySelectorAll('input, select');
+const fundChargesCheckbox = document.getElementById('fund-charges'); // Added Checkbox
+
 const resInsurance = document.getElementById('res-insurance');
 const resLoanAmount = document.getElementById('res-loan-amount');
 const resEmi = document.getElementById('res-emi');
@@ -55,6 +57,7 @@ const resRc = document.getElementById('res-rc');
 const resDoc = document.getElementById('res-doc');
 const resStamp = document.getElementById('res-stamp');
 const resTotalCharges = document.getElementById('res-total-charges');
+const resTotalUpfront = document.getElementById('res-total-upfront'); // Added Upfront Total
 const resDealerDisb = document.getElementById('res-dealer-disb');
 
 // Calculation Logic
@@ -71,7 +74,7 @@ function calculate() {
     const insPlan = document.getElementById('ins-plan').value;
     const insYears = document.getElementById('ins-years').value;
 
-    // 2. Base Loan Amount & Insurance Calculation
+    // 2. Base Loan Amount & Insurance 
     const baseLoanAmount = Math.max(0, onRoadPrice - downPayment);
     let insurancePremium = 0;
 
@@ -79,25 +82,47 @@ function calculate() {
         insurancePremium = insuranceRates[insPlan][insYears];
     }
 
-    // Final Loan Amount to compute EMI on
-    const loanAmount = baseLoanAmount + insurancePremium;
+    // 3. Calculate Charges First (Based on Base + Insurance)
+    const fundedAmountBase = baseLoanAmount + insurancePremium;
+    const pfCharge = (fundedAmountBase * 0.025) * 1.18; // 2.5% + 18% GST
+    const rcCharge = 600 * 1.18;
+    const docCharge = 750 * 1.18;
+    const stampDuty = 200;
+    const totalCharges = pfCharge + rcCharge + docCharge + stampDuty;
+
+    // 4. Determine Final Loan Amount & Payout based on Checkbox
+    let loanAmount = 0;
+    let totalUpfront = 0;
+    let dealerDisbursement = 0;
+
+    if (fundChargesCheckbox && fundChargesCheckbox.checked) {
+        // Option A: Charges are ADDED to the loan
+        loanAmount = fundedAmountBase + totalCharges;
+        totalUpfront = downPayment; // Customer only pays DP upfront
+        dealerDisbursement = baseLoanAmount; // Bank pays Dealer exact remaining price
+    } else {
+        // Option B: Charges are PAID UPFRONT
+        loanAmount = fundedAmountBase;
+        totalUpfront = downPayment + totalCharges; // Customer pays DP + Charges
+        dealerDisbursement = baseLoanAmount - totalCharges; // Dealer gets less from bank
+    }
     
     // Default zero states if inputs are missing
     if (loanAmount <= 0 || tenure <= 0 || roi <= 0) {
-        resetOutputs(loanAmount, insurancePremium);
+        resetOutputs(loanAmount, insurancePremium, totalUpfront);
         return;
     }
 
-    // 3. EMI Calculation
+    // 5. EMI Calculation
     const r = (roi / 12) / 100;
     const n = tenure;
     const emi = loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
 
-    // 4. Flat Rate ROI
+    // 6. Flat Rate ROI
     const totalPayment = emi * tenure;
     const flatRoi = (((totalPayment - loanAmount) * 12) / (loanAmount * tenure)) * 100;
 
-    // 5. Broken Period Days
+    // 7. Broken Period Days
     let brokenDays = 0;
     if (disbDateVal && emiDateVal) {
         const disbDate = new Date(disbDateVal);
@@ -112,21 +137,9 @@ function calculate() {
         brokenDays = Math.max(0, daysDiff - 1);
     }
 
-    // 6. Broken Period Interest & First Installment
+    // 8. Broken Period Interest & First Installment
     const brokenInterest = loanAmount * brokenDays * (roi / 360) / 100;
     const firstInstallment = emi + brokenInterest;
-
-    // 7. Additional Charges (Note: PF is calculated on total loan amount)
-    const pfCharge = (loanAmount * 0.025) * 1.18; // 2.5% + 18% GST
-    const rcCharge = 600 * 1.18;
-    const docCharge = 750 * 1.18;
-    const stampDuty = 200;
-    const totalCharges = pfCharge + rcCharge + docCharge + stampDuty;
-
-    // 8. Dealer Disbursement 
-    // Disbursement usually deducts charges but DOES NOT deduct the insurance premium 
-    // because that goes to the insurance company, not the dealer.
-    const dealerDisbursement = baseLoanAmount - totalCharges;
 
     // 9. Update UI
     resInsurance.innerText = formatCurrency(insurancePremium);
@@ -144,10 +157,11 @@ function calculate() {
     resStamp.innerText = formatCurrency(stampDuty);
     resTotalCharges.innerText = formatCurrency(totalCharges);
 
+    resTotalUpfront.innerText = formatCurrency(totalUpfront);
     resDealerDisb.innerText = formatCurrency(dealerDisbursement);
 }
 
-function resetOutputs(loanAmount, insurancePremium) {
+function resetOutputs(loanAmount, insurancePremium, totalUpfront = 0) {
     resInsurance.innerText = formatCurrency(insurancePremium);
     resLoanAmount.innerText = formatCurrency(loanAmount);
     resEmi.innerText = formatCurrency(0);
@@ -160,10 +174,16 @@ function resetOutputs(loanAmount, insurancePremium) {
     resDoc.innerText = formatCurrency(0);
     resStamp.innerText = formatCurrency(0);
     resTotalCharges.innerText = formatCurrency(0);
+    resTotalUpfront.innerText = formatCurrency(totalUpfront);
     resDealerDisb.innerText = formatCurrency(0);
 }
 
-// Attach listeners for real-time calculation (now listens to dropdowns too)
+// Attach listeners for real-time calculation
 formInputs.forEach(input => {
     input.addEventListener('input', calculate);
 });
+
+// Attach listener specifically for the checkbox
+if (fundChargesCheckbox) {
+    fundChargesCheckbox.addEventListener('change', calculate);
+}
