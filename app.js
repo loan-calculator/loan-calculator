@@ -1,16 +1,13 @@
 // --- SECURITY PIN CHECK ---
 const secretPin = "8899"; // <-- You can change "8899" to any PIN you want!
-
 const userAttempt = prompt("🔒 Private Calculator. Please enter the Access PIN:");
 
 if (userAttempt !== secretPin) {
-    // If they get it wrong, erase the whole screen and show an error
     document.body.innerHTML = "<div style='display: flex; height: 100vh; justify-content: center; align-items: center; font-family: sans-serif; background-color: #111827; color: white;'><h1>🔒 Access Denied. Incorrect PIN.</h1></div>";
     throw new Error("Execution stopped. Incorrect PIN entered.");
 }
 // --- END SECURITY CHECK ---
 
-// (Keep all your existing Service Worker and calculator code below this line)
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -78,6 +75,10 @@ function calculate() {
     const downPayment = parseFloat(document.getElementById('down-payment').value) || 0;
     const tenure = parseFloat(document.getElementById('tenure').value) || 0;
     const roi = parseFloat(document.getElementById('roi').value) || 0;
+    
+    // NEW: Grab the manual PF Rate you just added to HTML
+    const pfRateInput = parseFloat(document.getElementById('pf-rate').value) || 0;
+
     const disbDateInput = document.getElementById('disb-date');
     const emiDateInput = document.getElementById('emi-date');
     const insPlanInput = document.getElementById('ins-plan');
@@ -90,8 +91,6 @@ function calculate() {
         let month = d.getMonth();
         let year = d.getFullYear();
 
-        // 6th to 21st -> Next Month
-        // 22nd to 5th -> Month After Next (if 22nd+), or Next Month (if 1st-5th)
         if (day >= 6 && day <= 21) {
             month += 1;
         } else if (day >= 22) {
@@ -100,13 +99,11 @@ function calculate() {
             month += 1;
         }
 
-        // Handle Year Rollover (e.g., Dec to Jan)
         if (month > 11) {
             year += Math.floor(month / 12);
             month = month % 12;
         }
 
-        // Format to YYYY-MM-DD
         let emiMonthStr = (month + 1).toString().padStart(2, '0');
         emiDateVal = `${year}-${emiMonthStr}-05`;
         emiDateInput.value = emiDateVal; 
@@ -126,7 +123,7 @@ function calculate() {
         else if (baseLoanAmount <= 150000) plan = 'D';
 
         let years = '5';
-        if (tenure <= 24) years = '2'; // Handles 12, 18, 24 months
+        if (tenure <= 24) years = '2'; 
         else if (tenure <= 36) years = '3';
         else if (tenure <= 48) years = '4';
 
@@ -136,9 +133,13 @@ function calculate() {
         insPlanInput.value = '';
     }
 
-    // 5. CALCULATE TOTALS & BANK CHARGES
+    // 5. CALCULATE TOTALS & BANK CHARGES (Using Manual PF Rate)
     const fundedAmountBase = baseLoanAmount + insurancePremium;
-    const pfCharge = (fundedAmountBase * 0.025) * 1.18; // 2.5% + 18% GST
+    
+    // Converts "2.5" into 0.025 for math
+    const actualPfRate = pfRateInput / 100;
+    
+    const pfCharge = (fundedAmountBase * actualPfRate) * 1.18; // Typed PF + 18% GST
     const rcCharge = 600 * 1.18;
     const docCharge = 750 * 1.18;
     const stampDuty = 200;
@@ -159,7 +160,6 @@ function calculate() {
         dealerDisbursement = baseLoanAmount - totalCharges; 
     }
     
-    // Check for missing data
     if (loanAmount <= 0 || tenure <= 0 || roi <= 0) {
         resetOutputs(loanAmount, insurancePremium, totalUpfront);
         return;
@@ -231,6 +231,3 @@ function resetOutputs(loanAmount, insurancePremium, totalUpfront = 0) {
 formInputs.forEach(input => {
     input.addEventListener('input', calculate);
 });
-if (fundChargesCheckbox) {
-    fundChargesCheckbox.addEventListener('change', calculate);
-}
