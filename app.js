@@ -75,15 +75,13 @@ function calculate() {
     const downPayment = parseFloat(document.getElementById('down-payment').value) || 0;
     const tenure = parseFloat(document.getElementById('tenure').value) || 0;
     const roi = parseFloat(document.getElementById('roi').value) || 0;
-    
-    // NEW: Grab the manual PF Rate you just added to HTML
     const pfRateInput = parseFloat(document.getElementById('pf-rate').value) || 0;
-
+    
     const disbDateInput = document.getElementById('disb-date');
     const emiDateInput = document.getElementById('emi-date');
     const insPlanInput = document.getElementById('ins-plan');
     
-    // 2. AUTO EMI DATE CALCULATION (Rule: 5th of the month)
+    // 2. AUTO EMI DATE CALCULATION
     let emiDateVal = "";
     if (disbDateInput.value) {
         let d = new Date(disbDateInput.value);
@@ -113,66 +111,80 @@ function calculate() {
     let exactBaseLoan = Math.max(0, onRoadPrice - downPayment);
     const baseLoanAmount = Math.round(exactBaseLoan / 500) * 500;
 
-    // 4. AUTO INSURANCE SLAB DETERMINATION
+    // 4. RESOLVE CIRCULAR DEPENDENCY (Insurance vs Total Loan)
     let insurancePremium = 0;
-    if (baseLoanAmount > 0 && tenure > 0) {
-        let plan = 'E'; // Default to max
-        if (baseLoanAmount <= 70000) plan = 'A';
-        else if (baseLoanAmount <= 100000) plan = 'B';
-        else if (baseLoanAmount <= 125000) plan = 'C';
-        else if (baseLoanAmount <= 150000) plan = 'D';
+    let plan = 'E';
+    let years = '5';
+    let loanAmount = 0;
+    let totalUpfront = 0;
+    let dealerDisbursement = 0;
+    let pfCharge = 0, rcCharge = 0, docCharge = 0, stampDuty = 0, totalCharges = 0;
+    
+    // We start by guessing the total loan is just the base loan amount
+    let projectedTotalLoan = baseLoanAmount; 
 
-        let years = '5';
+    // Loop 3 times to let the math stabilize if adding charges pushes it into the next slab
+    for (let i = 0; i < 3; i++) {
+        // A. Find the Slab based on the projected total loan
+        plan = 'E'; 
+        if (projectedTotalLoan <= 70000) plan = 'A';
+        else if (projectedTotalLoan <= 100000) plan = 'B';
+        else if (projectedTotalLoan <= 125000) plan = 'C';
+        else if (projectedTotalLoan <= 150000) plan = 'D';
+
         if (tenure <= 24) years = '2'; 
         else if (tenure <= 36) years = '3';
         else if (tenure <= 48) years = '4';
+        else years = '5';
 
-        insurancePremium = insuranceRates[plan][years];
+        // Set Premium
+        insurancePremium = insuranceRates[plan][years] || 0;
+
+        // B. Calculate Charges
+        let fundedAmountBase = baseLoanAmount + insurancePremium;
+        const actualPfRate = pfRateInput / 100;
+        
+        pfCharge = (fundedAmountBase * actualPfRate) * 1.18; 
+        rcCharge = 600 * 1.18;
+        docCharge = 750 * 1.18;
+        stampDuty = 200;
+        totalCharges = pfCharge + rcCharge + docCharge + stampDuty;
+
+        // C. Update the Projected Total Loan
+        if (fundChargesCheckbox && fundChargesCheckbox.checked) {
+            projectedTotalLoan = fundedAmountBase + totalCharges;
+            loanAmount = projectedTotalLoan;
+            totalUpfront = downPayment; 
+            dealerDisbursement = baseLoanAmount; 
+        } else {
+            projectedTotalLoan = fundedAmountBase; 
+            loanAmount = projectedTotalLoan;
+            totalUpfront = downPayment + totalCharges; 
+            dealerDisbursement = baseLoanAmount - totalCharges; 
+        }
+    }
+    
+    // Update the visual text box for the plan
+    if (baseLoanAmount > 0 && tenure > 0) {
         insPlanInput.value = `Plan ${plan} (${years} Years) - Coverage limit auto-detected`;
     } else {
         insPlanInput.value = '';
     }
-
-    // 5. CALCULATE TOTALS & BANK CHARGES (Using Manual PF Rate)
-    const fundedAmountBase = baseLoanAmount + insurancePremium;
     
-    // Converts "2.5" into 0.025 for math
-    const actualPfRate = pfRateInput / 100;
-    
-    const pfCharge = (fundedAmountBase * actualPfRate) * 1.18; // Typed PF + 18% GST
-    const rcCharge = 600 * 1.18;
-    const docCharge = 750 * 1.18;
-    const stampDuty = 200;
-    const totalCharges = pfCharge + rcCharge + docCharge + stampDuty;
-
-    // 6. FUNDED VS UPFRONT LOGIC (Checkbox)
-    let loanAmount = 0;
-    let totalUpfront = 0;
-    let dealerDisbursement = 0;
-
-    if (fundChargesCheckbox && fundChargesCheckbox.checked) {
-        loanAmount = fundedAmountBase + totalCharges;
-        totalUpfront = downPayment; 
-        dealerDisbursement = baseLoanAmount; 
-    } else {
-        loanAmount = fundedAmountBase;
-        totalUpfront = downPayment + totalCharges; 
-        dealerDisbursement = baseLoanAmount - totalCharges; 
-    }
-    
+    // 5. Check for missing inputs
     if (loanAmount <= 0 || tenure <= 0 || roi <= 0) {
         resetOutputs(loanAmount, insurancePremium, totalUpfront);
         return;
     }
 
-    // 7. EMI CALCULATION
+    // 6. EMI CALCULATION
     const r = (roi / 12) / 100;
     const n = tenure;
     const emi = loanAmount * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
     const totalPayment = emi * tenure;
     const flatRoi = (((totalPayment - loanAmount) * 12) / (loanAmount * tenure)) * 100;
 
-    // 8. BROKEN PERIOD CALCULATION
+    // 7. BROKEN PERIOD CALCULATION
     let brokenDays = 0;
     if (disbDateInput.value && emiDateVal) {
         const disbDate = new Date(disbDateInput.value);
@@ -190,7 +202,7 @@ function calculate() {
     const brokenInterest = loanAmount * brokenDays * (roi / 360) / 100;
     const firstInstallment = emi + brokenInterest;
 
-    // 9. UPDATE UI
+    // 8. UPDATE UI
     resInsurance.innerText = formatCurrency(insurancePremium);
     resLoanAmount.innerText = formatCurrency(loanAmount);
     resEmi.innerText = formatCurrency(emi);
