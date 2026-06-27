@@ -243,3 +243,41 @@ function resetOutputs(loanAmount, insurancePremium, totalUpfront = 0) {
 formInputs.forEach(input => {
     input.addEventListener('input', calculate);
 });
+// --- WHATSAPP SHARE AUTOMATION ---
+const whatsappBtn = document.getElementById('whatsapp-btn');
+
+if (whatsappBtn) {
+    whatsappBtn.addEventListener('click', () => {
+        // 1. Check if a loan is actually calculated
+        const emiValue = resEmi.innerText;
+        if (emiValue === "₹0" || emiValue === "0") {
+            alert("Please calculate a loan first before sharing!");
+            return;
+        }
+
+        // 2. Gather the important numbers
+        const onRoadPrice = document.getElementById('on-road-price').value || "0";
+        const tenure = document.getElementById('tenure').value || "0";
+        const upfront = resTotalUpfront.innerText;
+        const loanAmt = resLoanAmount.innerText;
+        const roi = document.getElementById('roi').value || "0";
+
+        // 3. Format the WhatsApp message using bolding (*) and italics (_)
+        const message = 
+`*🏍️ TWO-WHEELER LOAN QUOTATION*
+
+*Vehicle On-Road Price:* ₹${Number(onRoadPrice).toLocaleString('en-IN')}
+*Total Loan Amount:* ${loanAmt}
+*Tenure:* ${tenure} Months
+*Rate of Interest:* ${roi}%
+
+*➡️ Monthly EMI:* ${emiValue}
+*➡️ Upfront to Pay at Showroom:* ${upfront}
+
+_Note: This is an estimated quote. Final approval is subject to bank processing and document verification._`;
+
+        // 4. Create the WhatsApp link and open it
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    });
+}
