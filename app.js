@@ -49,8 +49,8 @@ const insuranceRates = {
     'E': { '2': 1926, '3': 2766, '4': 3524, '5': 4200 }
 };
 
-// DOM Elements
-const formInputs = document.querySelectorAll('input');
+// DOM Elements - UPDATED to include selects (dropdowns)
+const formInputs = document.querySelectorAll('input, select');
 const fundChargesCheckbox = document.getElementById('fund-charges'); 
 
 const resInsurance = document.getElementById('res-insurance');
@@ -75,7 +75,10 @@ function calculate() {
     const downPayment = parseFloat(document.getElementById('down-payment').value) || 0;
     const tenure = parseFloat(document.getElementById('tenure').value) || 0;
     const roi = parseFloat(document.getElementById('roi').value) || 0;
-    const pfRateInput = parseFloat(document.getElementById('pf-rate').value) || 0;
+    
+    // NEW HYBRID PF INPUTS
+    const pfType = document.getElementById('pf-type').value;
+    const pfInputValue = parseFloat(document.getElementById('pf-value').value) || 0;
     
     const disbDateInput = document.getElementById('disb-date');
     const emiDateInput = document.getElementById('emi-date');
@@ -101,7 +104,6 @@ function calculate() {
             year += Math.floor(month / 12);
             month = month % 12;
         }
-
         let emiMonthStr = (month + 1).toString().padStart(2, '0');
         emiDateVal = `${year}-${emiMonthStr}-05`;
         emiDateInput.value = emiDateVal; 
@@ -142,9 +144,14 @@ function calculate() {
 
         // B. Calculate Charges
         let fundedAmountBase = baseLoanAmount + insurancePremium;
-        const actualPfRate = pfRateInput / 100;
         
-        pfCharge = (fundedAmountBase * actualPfRate) * 1.18; 
+        // NEW PF LOGIC: Check if it's Percentage or Flat
+        if (pfType === 'percentage') {
+            pfCharge = (fundedAmountBase * (pfInputValue / 100)) * 1.18; // % + GST
+        } else {
+            pfCharge = pfInputValue; // Flat Amount (includes GST)
+        }
+        
         rcCharge = 600 * 1.18;
         docCharge = 750 * 1.18;
         stampDuty = 200;
@@ -198,7 +205,6 @@ function calculate() {
         
         brokenDays = Math.max(0, daysDiff - 1);
     }
-
     const brokenInterest = loanAmount * brokenDays * (roi / 360) / 100;
     const firstInstallment = emi + brokenInterest;
 
@@ -243,6 +249,11 @@ function resetOutputs(loanAmount, insurancePremium, totalUpfront = 0) {
 formInputs.forEach(input => {
     input.addEventListener('input', calculate);
 });
+// Attach listener for the checkbox specifically (sometimes missed by input loops)
+if (fundChargesCheckbox) {
+    fundChargesCheckbox.addEventListener('change', calculate);
+}
+
 // --- WHATSAPP SHARE AUTOMATION ---
 const whatsappBtn = document.getElementById('whatsapp-btn');
 
