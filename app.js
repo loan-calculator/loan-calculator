@@ -69,7 +69,8 @@ const resTotalUpfront = document.getElementById('res-total-upfront');
 const resDealerDisb = document.getElementById('res-dealer-disb');
 
 // Calculation Logic
-function calculate() {
+function calculate(// Trigger the Amortization Table generation
+    generateAmortizationSchedule(loanAmount, roi, tenure, emi);) {
     // 1. Get Inputs
     const onRoadPrice = parseFloat(document.getElementById('on-road-price').value) || 0;
     const downPayment = parseFloat(document.getElementById('down-payment').value) || 0;
@@ -291,4 +292,60 @@ _Note: This is an estimated quote. Final approval is subject to bank processing 
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     });
+}
+// --- AMORTIZATION SCHEDULE LOGIC ---
+const toggleScheduleBtn = document.getElementById('toggle-schedule-btn');
+const scheduleSection = document.getElementById('schedule-section');
+const amortizationTableBody = document.querySelector('#amortization-table tbody');
+
+if (toggleScheduleBtn) {
+    toggleScheduleBtn.addEventListener('click', () => {
+        if (scheduleSection.style.display === 'none') {
+            scheduleSection.style.display = 'block';
+            toggleScheduleBtn.innerText = '📅 Hide Repayment Schedule';
+            toggleScheduleBtn.style.backgroundColor = '#6b7280'; // Turn gray when open
+            scheduleSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            scheduleSection.style.display = 'none';
+            toggleScheduleBtn.innerText = '📅 View Repayment Schedule';
+            toggleScheduleBtn.style.backgroundColor = '#3b82f6'; // Turn blue when closed
+        }
+    });
+}
+
+function generateAmortizationSchedule(loanAmt, roi, tenure, emi) {
+    if (!amortizationTableBody) return;
+    amortizationTableBody.innerHTML = ''; // Clear old data
+
+    if (loanAmt <= 0 || tenure <= 0 || roi <= 0) return;
+
+    let balance = loanAmt;
+    const monthlyRate = (roi / 12) / 100;
+    let html = '';
+
+    for (let month = 1; month <= tenure; month++) {
+        let interestForMonth = balance * monthlyRate;
+        let principalForMonth = emi - interestForMonth;
+        
+        // Final month cleanup (catches tiny decimal rounding errors)
+        if (month === tenure) {
+            principalForMonth = balance;
+            emi = principalForMonth + interestForMonth;
+        }
+
+        balance -= principalForMonth;
+        if (balance < 0) balance = 0; // Prevent negative zero
+
+        html += `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 10px; text-align: center; font-weight: bold;">${month}</td>
+                <td style="padding: 10px; font-weight: 600;">${formatCurrency(emi)}</td>
+                <td style="padding: 10px; color: #ef4444;">${formatCurrency(interestForMonth)}</td>
+                <td style="padding: 10px; color: #22c55e;">${formatCurrency(principalForMonth)}</td>
+                <td style="padding: 10px; font-weight: bold;">${formatCurrency(balance)}</td>
+            </tr>
+        `;
+    }
+    
+    amortizationTableBody.innerHTML = html;
 }
