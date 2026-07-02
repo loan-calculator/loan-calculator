@@ -1,10 +1,9 @@
 {
-  "name": "Pro Loan Calculator",
-  "short_name": "LoanCalc",
-  "description": "Calculate EMIs, broken periods, and disbursements.",
-  "start_url": "/index.html",
+  "name": "Pro Auto Finance Calculator",
+  "short_name": "Auto Loan",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#111827",
   "theme_color": "#2563eb",
   "icons": [
     {
